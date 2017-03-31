@@ -89,7 +89,7 @@ rp <- FLBRP(om)
 # omf
 save(om, rp, sr, ind, grid, res, file='omf.RData', compress='xz')
 
-# oms
+# oms - For TESTING
 idx <- sample(1:720, 100)
 
 om <- deSeason(deGender(iter(om, idx)))
@@ -105,3 +105,4 @@ sr <- list(model='shepherd',
 
 save(om, rp, sr, ind, grid, res, file='oms.RData', compress='xz')
 
+# om - SUBSET based on analysis

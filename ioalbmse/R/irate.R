@@ -1,5 +1,5 @@
-# IRate.R - Function implementing the IRate MP
-# ioalbmse/R/IRate.R
+# irate.R - Function implementing the irate MP
+# ioalbmse/R/irate.R
 
 # Copyright European Union, 2013-2016
 # Authors: Iago Mosqueira (EC JRC) <iago.mosqueira@jrc.ec.europa.eu>
@@ -7,9 +7,9 @@
 #
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
-# IRate {{{
+# irate {{{
 
-#' Run the IRate Management Procedure
+#' Run the irate Management Procedure
 #'
 #' Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend
 #' odio ac rutrum luctus. Aenean placerat porttitor commodo. Pellentesque eget porta
@@ -44,7 +44,7 @@
 #'
 #' @name irate
 #' @rdname irate
-#' @aliases irate IRate
+#' @aliases irate irate
 #'
 #' @author Iago Mosqueira, EC JRC
 #' @seealso \code{\link{FLStock}}
@@ -55,7 +55,7 @@
 #' omp <- fwdWindow(om, end=dims(om)$maxyear + 3, br)
 #'
 #' # Hindcast run
-#' run <- IRate(omp, sro, years=1990:2012, yref=c(1981:2010),
+#' run <- irate(omp, sro, years=1990:2012, yref=c(1981:2010),
 #'   responsiveness=0.5, DLAG=1, MLAG=1, SFREQ=2,
 #'   hr_multiplier= 1.1, biomass_threshold=0.5,
 #'   biomass_limit=0.2, maxTAC=500000,
@@ -64,7 +64,7 @@
 #' plot(window(FLStocks(run=run, om=om), end=2012))
 #' 
 
-IRate <- function(omp, sr, years, yref=seq(dims(omp)$minyear, years[1]-1),
+irate <- function(omp, sr, years, yref=seq(dims(omp)$minyear, years[1]-1),
   responsiveness, hr_multiplier, biomass_threshold, biomass_limit, maxTAC,
   DLAG=1, MLAG=1, SFREQ=1,
   errcpue=~0, effcpue=~0, srresiduals=~0, errimp=~0, 

@@ -1,5 +1,5 @@
-# BRule.R - Function implementing the BRule MP
-# ioalbmse/R/BRule.R
+# brule.R - Function implementing the brule MP
+# ioalbmse/R/brule.R
 
 # Copyright European Union, 2013-2016
 # Authors: Iago Mosqueira (EC JRC) <iago.mosqueira@jrc.ec.europa.eu>
@@ -9,9 +9,9 @@
 
 # TODO Parse FLQ args for tune, e.g. bthreshold & bmsy
 
-# BRule {{{
+# brule {{{
 
-#' Run the BRule Management Procedure
+#' Run the brule Management Procedure
 #'
 #' Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend
 #' odio ac rutrum luctus. Aenean placerat porttitor commodo. Pellentesque eget porta
@@ -40,9 +40,9 @@
 #'
 #' @return FLStock
 #'
-#' @name BRule
-#' @rdname BRule
-#' @aliases BRule BRule
+#' @name brule
+#' @rdname brule
+#' @aliases brule brule
 #'
 #' @author Iago Mosqueira, EC JRC
 #' @seealso \code{\link{FLStock}}
@@ -51,14 +51,14 @@
 #'
 #' omp <- fwdWindow(om, end=dims(om)$maxyear + 3, br)
 #'
-#' B0 <- BRule(omp, sr=sro, years=years, bthreshold=1, blim=0.4*refpts['SBMSY'],
+#' B0 <- brule(omp, sr=sro, years=years, bthreshold=1, blim=0.4*refpts['SBMSY'],
 #'  ftarget=refpts['FMSY'], bmsy=refpts['SBMSY',],  
 #'  DLAG=2, MLAG=2, SFREQ=2,
 #'  errcpue=~rnorm(mean=0, sd=cpue * 0.20), effcpue=~0, errimp=~0,
 #'  srresiduals=exp(FLife::rnoise(1, FLQuant(0, dimnames=list(year=seq(years[1],
 #'    tail(years, 1) + 6))), sd=0.3, b=0.2)))
 
-BRule <- function(omp, sr, years, bthreshold, blim, ftarget, bmsy,
+brule <- function(omp, sr, years, bthreshold, blim, ftarget, bmsy,
  DLAG=1, MLAG=1, SFREQ=1, errcpue=~0, effcpue=~0, srresiduals=~1, errimp=~0, 
  verbose=FALSE) {
 
