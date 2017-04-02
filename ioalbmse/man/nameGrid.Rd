@@ -9,3 +9,4 @@ nameGrid(df, dir, from = 1)
 \description{
 Creates folder names from a 'grid' df of scenarios
 }
+

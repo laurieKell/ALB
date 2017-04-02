@@ -43,10 +43,11 @@ run <- irate(omp, sro, years=1990:2012, yref=c(1981:2010),
 plot(window(FLStocks(run=run, om=om), end=2012))
 
 }
-\seealso{
-\code{\link{FLStock}}
-}
 \author{
 Iago Mosqueira, EC JRC
 }
+\seealso{
+\code{\link{FLStock}}
+}
 \keyword{utilities}
+

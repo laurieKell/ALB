@@ -35,13 +35,14 @@ B0 <- brule(omp, sr=sro, years=years, bthreshold=1, blim=0.4*refpts['SBMSY'],
  ftarget=refpts['FMSY'], bmsy=refpts['SBMSY',],  
  DLAG=2, MLAG=2, SFREQ=2,
  errcpue=~rnorm(mean=0, sd=cpue * 0.20), effcpue=~0, errimp=~0,
- srresiduals=exp(FLife::rnoise(1, FLQuant(0, dimnames=list(year=seq(years[1],
+ srresiduals=exp(rnoise(1, FLQuant(0, dimnames=list(year=seq(years[1],
    tail(years, 1) + 6))), sd=0.3, b=0.2)))
-}
-\seealso{
-\code{\link{FLStock}}
 }
 \author{
 Iago Mosqueira, EC JRC
 }
+\seealso{
+\code{\link{FLStock}}
+}
 \keyword{utilities}
+

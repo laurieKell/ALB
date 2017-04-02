@@ -48,10 +48,11 @@ rungrid(grid, options="", dir=dir)
 
 # -- LOAD results
 
-load(file=paste0(dir, "/grid.RData")
+res <- cbind(grid[,-9], loadres(dir=dir, grid=grid))
 
-# res
-res <- loadres(dir=dir, grid=grid)
+# rpts: MSY, SB_MSY, F_MSY, SB0
+rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=res$SSB_MSY, FMSY=res$Fstd_MSY,
+  SB0=res$SPB_1950, Ftarget=res$Fstd_MSY, SBlim=0.40*res$SSB_MSY)
 
 # om
 om <- loadom(dir=dir, grid=grid)
@@ -81,13 +82,14 @@ om <- slimFLStock(om)
 # sr
 sr <- list(model='shepherd',
   params=FLPar(a=grid$steepness, b=exp(res$`SR_LN(R0)`), c=res$SPB_1950,
-  iter=dim(res)[1]), formula=rec~(4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)))
+  iter=dim(res)[1]), formula=rec ~ (4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)))
 
 # brp
 rp <- FLBRP(om)
 
 # omf
-save(om, rp, sr, ind, grid, res, file='omf.RData', compress='xz')
+save(om, rp, rpts, sr, ind, grid, res, file='omf.RData', compress='xz')
+
 
 # oms - For TESTING
 idx <- sample(1:720, 100)
@@ -97,12 +99,13 @@ rp <- FLBRP(om)
 ind <- seasonMeans(areaMeans(ind))
 
 res <- res[idx,]
+rpts <- rpts[,idx]
 grid <- grid[idx,]
 
 sr <- list(model='shepherd',
   params=FLPar(a=grid$steepness, b=exp(res$`SR_LN(R0)`), c=res$SPB_1950,
   iter=dim(res)[1]), formula=rec~(4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)))
 
-save(om, rp, sr, ind, grid, res, file='oms.RData', compress='xz')
+save(om, rpts, rp, sr, ind, res, file='oms.RData', compress='xz')
 
 # om - SUBSET based on analysis

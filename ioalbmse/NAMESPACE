@@ -6,8 +6,6 @@ import("FLBRP")
 import("grid")
 import("foreach")
 import("ggplotFL")
-importFrom("FLife",
-  "rnoise")
 importFrom("ggstance",
   "geom_linerangeh")
 importFrom("stats", "optimize")

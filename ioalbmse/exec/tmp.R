@@ -16,7 +16,7 @@ setcolorder(resF, c(1:3,22,4:21))
 save(resF, file=paste0(dir, '/resF.RData'), compress='xz')
 
 # TRIM down om and res
-a
+
 # data.frame of K (t) vs. habitat size (km2) for all ALB stocks
 prK <- data.frame(
 	habitat=c(6073, 244, 3752, 7547, 3779, 7426),

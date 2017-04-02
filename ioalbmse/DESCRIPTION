@@ -1,31 +1,32 @@
 Package: ioalbmse
 Title: Management Strategy Evaluation for the Indian Ocean Tuna Commission
-  Albacore Tuna Stock
-Version: 0.5.6
-Date: 2017-03-23
+    Albacore Tuna Stock
+Version: 0.5.7
+Date: 2017-04-02
 Authors@R: person("Iago", "Mosqueira", email = "iago.mosqueira@ec.europa.eu",
   role = c("aut", "cre"))
-Description: Inputs and outputs of the work for the development of Management Procedures
-  for Indian Ocean albacore tuna through MSE. It includes an OM based on SS3 runs,
-  a series of MSE runs using FLR, and a shiny app for visualizing both. Work carried
-  out under the auspicies of the Working Party on Methods of the Indian Ocean
-  Tuna Commission.
+Description: Inputs and outputs of the work for the development of Management
+    Procedures for Indian Ocean albacore tuna through MSE. It includes an OM based
+    on SS3 runs, a series of MSE runs using FLR, and a shiny app for visualizing
+    both. Work carried out under the auspicies of the Working Party on Methods of
+    the Indian Ocean Tuna Commission.
 Depends:
-  R (>= 3.3.2),
-  foreach, 
-  ggplotFL,
-  FLCore (>= 2.5.20170101),
-  FLash,
-  FLBRP,
-  data.table,
-  mse
+    R (>= 3.3.2),
+    foreach,
+    ggplotFL,
+    FLCore (>= 2.5.20170101),
+    FLash,
+    FLBRP,
+    data.table,
+    mse
 Imports:
-  methods,
-  ggstance, 
-  r4ss (>= 1.25.0), 
-  FLife
+    methods,
+    ggstance,
+    r4ss (>= 1.25.0),
 Additional_repositories: http://iotcwpm.github.com/R
-Suggests: doParallel, testthat
+Suggests:
+    doParallel,
+    testthat
 License: European Union Public License
 LazyData: true
-RoxygenNote: 6.0.1
+RoxygenNote: 5.0.1
