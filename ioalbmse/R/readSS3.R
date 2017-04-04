@@ -220,44 +220,6 @@ readFLBFss3 <- function(dir, birthseas=unique(out$natage$BirthSeas)) {
 
 } # }}}
 
-# readFLIBss3 # {{{
-readFLIBss3 <- function(dir) {
-
-  # LOAD SS_output list
-  out <- r4ss::SS_output(dir, verbose=FALSE, hidewarn=TRUE, warn=FALSE,
-    printstats=FALSE, covar=FALSE, forecast=FALSE)
-  
-  cpue <- data.table(out$cpue)
-  cpue <- cpue[, .(Fleet, Name, Yr, Seas, Obs, Calc_Q, SE)]
-
-  fleets <- unique(cpue$Name)
-  
-  # TODO one liner!
-  res <- vector('list', length=length(fleets))
-  names(res) <- fleets
-
-  # TODO GET from Report.sso
-  # Survey_units(0=num;1=bio;2=F):
-  # Survey_error(-1=normal;0=lognorm;>0=df_T):
-
-  # TODO GET from DATA.SS, unify w/area dim?
-  # 2 2 1 1 4 4 3 3 3 3 3 3 1 2 3 4 1 2 3 4 3 1 #_area_assignments_for_each_fishery_and_survey
-
-  for (i in fleets) {
-    res[[i]] <- FLIndexBiomass(name=i,
-      desc=paste(out$inputs$repfile, out$SS_version, sep=" - "),
-      index=as.FLQuant(cpue[Name == i, .(year=Yr, season=Seas, data=Obs)][, age:='all']),
-      index.q=as.FLQuant(cpue[Name == i, .(year=Yr, season=Seas, data=Calc_Q)][, age:='all']),
-      index.var=as.FLQuant(cpue[Name == i, .(year=Yr, season=Seas, data=SE)][, age:='all'])
-    )
-  }
-
-  if(length(res) > 1)
-    return(FLIndices(res))
-  else
-    return(res)
-} # }}}
-
 # readFLSss3 {{{
 
 #' A function to read SS3 results as an FLStock object
@@ -418,24 +380,87 @@ readFLSss3 <- function(dir, birthseas=out$spawnseas, name="",
 #' @keywords classes
 #' @examples
 #'  
+# 
+# dir <- '../../../sa/run/'
+# cps <- readFLIBss3(dir, fleets=c(LLCPUE1=1, LLCPUE2=2, LLCPUE3=3, LLCPUE4=4))
 
-readFLIBss3 <- function(dir) {
+readFLIBss3 <- function(dir, fleets) {
 
   # LOAD SS_output list
   out <- r4ss::SS_output(dir, verbose=FALSE, hidewarn=TRUE, warn=FALSE,
     printstats=FALSE, covar=FALSE, forecast=FALSE)
+
+  # TODO LOAD ctl$sizeselex, to match fleets if not given
   
   # SUBSET from out
-  cpue <- out[[c("cpue")]]
+  cpue <- data.table(out[[c("cpue")]])
 
-  # SUBSET cpue
-  cpues <- cpue[,c("Name", "Yr", "Seas", "Obs")]
+  # --- index
+  index <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "Obs")]
 
-  names(cpues) <- c("area", "year", "season", "data")
+  # CHANGE names and SORT
+  names(index) <- c("qname", "year", "season", "data")
+  setorder(index, year, season, qname)
+  index[, age:='all']
 
-  cpues <- as(cpues, "FLQuant")
+  # CONVERT to FLQuants
+  index <- as(index, "FLQuants")
 
-  return(cpues)
+  # --- index.var
+  index.var <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "SE")]
+
+  # CHANGE names and SORT
+  names(index.var) <- c("qname", "year", "season", "data")
+  setorder(index.var, year, season, qname)
+  index.var[, age:='all']
+
+  # CONVERT to FLQuants
+  index.var <- as(index.var, "FLQuants")
+
+  # units = SE
+  index.var <- lapply(index.var, "units<-", "se")
+
+  # --- index.q
+  index.q <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "Calc_Q")]
+
+  # CHANGE names and SORT
+  names(index.q) <- c("qname", "year", "season", "data")
+  setorder(index.q, year, season, qname)
+  index.q[, age:='all']
+
+  # CONVERT to FLQuants
+  index.q <- as(index.q, "FLQuants")
+
+  # --- sel.pattern
+  selex <- data.table(out[["ageselex"]])
+  setkey(selex, "factor", fleet, year, morph)
+
+  # SUBSET Asel2, fleets, cpue years
+  selex <- selex[CJ("Asel2", fleets, unique(cpue$Yr), c(4,8))]
+  selex[, c("factor", "morph", "label") := NULL]
+
+  # RESHAPE to long
+  selex <- melt(selex, id.vars=c("fleet", "year", "seas","gender"),
+    variable.name="age", value.name="data")
+
+  # CHANGE names & SORT
+  names(selex) <- c("qname", "year", "season", "unit", "age", "data")
+  setorder(selex, year, season, age, unit, qname)
+
+  # CONVERT to FLQuants
+  sel.pattern <- as(as.data.frame(selex), 'FLQuants')
+  
+  # ASSIGN names
+  names(sel.pattern) <- names(fleets)
+
+  # --- FLIndices
+  cpues <- lapply(names(fleets), function(x) FLIndexBiomass(name=x,
+    index=index[[x]], index.q=index.q[[x]],
+    index.var=index.var[[x]],
+    sel.pattern=window(sel.pattern[[x]], start=dims(index[[x]])$minyear,
+      end=dims(index[[x]])$maxyear)))
+  
+  return(FLIndices(cpues))
 
 } # }}}
 

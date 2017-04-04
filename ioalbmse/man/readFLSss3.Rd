@@ -33,11 +33,10 @@ Fisheries Research 142: 86–99.
 \examples{
 
 }
-\author{
-The FLR Team
-}
 \seealso{
 \link{FLComp}
 }
+\author{
+The FLR Team
+}
 \keyword{classes}
-

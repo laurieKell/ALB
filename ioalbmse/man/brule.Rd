@@ -38,11 +38,10 @@ B0 <- brule(omp, sr=sro, years=years, bthreshold=1, blim=0.4*refpts['SBMSY'],
  srresiduals=exp(rnoise(1, FLQuant(0, dimnames=list(year=seq(years[1],
    tail(years, 1) + 6))), sd=0.3, b=0.2)))
 }
-\author{
-Iago Mosqueira, EC JRC
-}
 \seealso{
 \code{\link{FLStock}}
 }
+\author{
+Iago Mosqueira, EC JRC
+}
 \keyword{utilities}
-

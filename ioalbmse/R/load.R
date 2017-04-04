@@ -37,21 +37,18 @@ loadres <- function(dirs,
 } # }}}
 
 # loadom(dirs, progress=TRUE) {{{
-loadom <- function(dirs, progress=TRUE, ...) {
+loadom <- function(dirs, progress=TRUE, fleets) {
 
 	# LOOP over dirs
   om <- foreach(i=seq(length(dirs)), .combine='combine') %dopar% {
-    cat("[", i, "]\n", sep="")
-    readFLSss3(dirs[i])
+    if(progress)
+      cat("[", i, "]\n", sep="")
+    list(stk=readFLSss3(dirs[i]),
+      ind=readFLIBss3(dirs[i], fleets=fleets))
   }
 
   # DROP undeeded extra iters
-  om <- slimFLStock(om)
-
-  # args
-  args <- list(...)
-  for(i in names(args))
-    slot(om, i) <- args[[i]]
+  om$stk <- slimFLStock(om$stk)
 
 	return(om)
 } # }}}

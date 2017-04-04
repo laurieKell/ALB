@@ -7,21 +7,30 @@
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
 
+# PACKAGES
 library(ioalbmse)
 
+# DATA
 data(oms)
 data(indicators)
 
-# omp
 years <- seq(2014, length=15, by=2)
 
+# OMP
 omp <- fwdWindow(om, end=tail(years, 1) + 2, rp)
 
+# R0
 r0 <- mseIndex(omp=omp, sr=sr, index=NA,
   hcrparams=FLPar(lambda=-1.25, ny=5, dtac=0.15),
   years=years, oemparams=NA, imparams=NA, verbose=TRUE)
 
+r1 <- mseIndex(omp=omp, sr=sr, index=NA,
+  hcrparams=FLPar(lambda=1.25, ny=5, dtac=0.10),
+  years=years, oemparams=NA, imparams=NA, verbose=TRUE)
+
 plot(r0$omp) + geom_vline(aes(xintercept=as.numeric(ISOdate(years[1],1,1))))
+
+plotOMR(om, FLStocks(R0=r0$omp, R1=r1$omp, R2=r0$omp), rpts["SBMSY",])
 
 perf <- performance(r0$omp, indicators=indicators, refpts=rpts, years=c(2024, 2034, 2064))
 
@@ -55,5 +64,5 @@ plot(window(pr0$omp, end=2036))
 
 # ---
 
-srresiduals=rlnoise(1, FLQuant(0, dimnames=list(year=seq(years[1],
+srresiduals <- rlnoise(1, FLQuant(0, dimnames=list(year=seq(years[1],
   tail(years, 1) + 6))), sd=0.2, b=0.1)

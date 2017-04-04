@@ -35,10 +35,10 @@ sce <- list(
 
 # -- SETUP grid/SS3 folders
 
-dir <- 'grid20170117'
+dir <- "grid20170117"
 
 grid <- setgrid(sce, dir=dir, base=system.file("sa/2016", package="ioalbmse"),
-  name='abt')
+  name="abt")
 
 save(grid, file=paste0(dir, "/grid.RData")
 
@@ -51,33 +51,32 @@ rungrid(grid, options="", dir=dir)
 res <- cbind(grid[,-9], loadres(dir=dir, grid=grid))
 
 # rpts: MSY, SB_MSY, F_MSY, SB0
-rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=res$SSB_MSY, FMSY=res$Fstd_MSY,
-  SB0=res$SPB_1950, Ftarget=res$Fstd_MSY, SBlim=0.40*res$SSB_MSY)
+rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=2 * res$SSB_MSY, FMSY=res$Fstd_MSY,
+  SB0=2 * res$SPB_1950, Ftarget=res$Fstd_MSY, SBlim=2 * 0.40*res$SSB_MSY)
 
-# om
+# om & index
 om <- loadom(dir=dir, grid=grid)
 
-# index
-ind <- readFLIBss3(paste0(dir, '/', grid$id[1]))
+# (om, index) <- loadom(dir=dir, grid=grid)
+indx <- om$index
+om <- om$om
 
 # -- HACK: combine() fails in server {{{
 
 library(FLCore)
 load('grid20170117/om.RData')
 omf <- propagate(om[[1]], 720)
-omf <- slimFLStock(omf)
 for(i in 2:720) {
   cat("[", i, "]\n")
 
-  for(s in c("catch", "catch.n", "catch.wt",
-             "landings", "landings.n", "landings.wt",
-             "stock", "stock.n",
-             "m", "harvest"))
-    slot(omf, s)[,,,,,i] <- slot(om[[i]], s)
-} # }}}
+for(s in c("catch", "catch.n", "catch.wt",
+  "landings", "landings.n", "landings.wt",
+  "stock", "stock.n",
+  "m", "harvest"))
+  slot(omf, s)[,,,,,i] <- slot(om[[i]], s)
+}
 
-# DROP iters in fixed slots and age=0
-om <- slimFLStock(om)
+omf <- slimFLStock(omf) # }}}
 
 # sr
 sr <- list(model='shepherd',
@@ -87,9 +86,8 @@ sr <- list(model='shepherd',
 # brp
 rp <- FLBRP(om)
 
-# omf
+# --- OMF
 save(om, rp, rpts, sr, ind, grid, res, file='omf.RData', compress='xz')
-
 
 # oms - For TESTING
 idx <- sample(1:720, 100)
