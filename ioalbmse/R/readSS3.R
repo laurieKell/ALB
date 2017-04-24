@@ -2,7 +2,7 @@
 # ioalbmse/R/readSS3.R
 
 # Copyright European Union, 2015-2016
-# Author: Iago Mosqueira (EC JRC) <iago.mosqueira@jrc.ec.europa.eu>
+# Author: Iago Mosqueira (EC JRC) <iago.mosqueira@ec.europa.eu>
 #
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
@@ -394,73 +394,34 @@ readFLIBss3 <- function(dir, fleets) {
   
   # SUBSET from out
   cpue <- data.table(out[[c("cpue")]])
+  selex <- data.table(out[["ageselex"]])
 
   # --- index
-  index <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "Obs")]
-
-  # CHANGE names and SORT
-  names(index) <- c("qname", "year", "season", "data")
-  setorder(index, year, season, qname)
-  index[, age:='all']
-
-  # CONVERT to FLQuants
-  index <- as(index, "FLQuants")
+  index <- ss3index(cpue, fleets)
 
   # --- index.var
-  index.var <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "SE")]
-
-  # CHANGE names and SORT
-  names(index.var) <- c("qname", "year", "season", "data")
-  setorder(index.var, year, season, qname)
-  index.var[, age:='all']
-
-  # CONVERT to FLQuants
-  index.var <- as(index.var, "FLQuants")
-
-  # units = SE
-  index.var <- lapply(index.var, "units<-", "se")
+  # index.var <- ss3index.var(cpue, fleets)
 
   # --- index.q
-  index.q <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "Calc_Q")]
-
-  # CHANGE names and SORT
-  names(index.q) <- c("qname", "year", "season", "data")
-  setorder(index.q, year, season, qname)
-  index.q[, age:='all']
-
-  # CONVERT to FLQuants
-  index.q <- as(index.q, "FLQuants")
+  index.q <- ss3index.q(cpue, fleets)
 
   # --- sel.pattern
-  selex <- data.table(out[["ageselex"]])
-  setkey(selex, "factor", fleet, year, morph)
+  sel.pattern <- ss3sel.pattern(selex, unique(cpue$Yr), fleets)
 
-  # SUBSET Asel2, fleets, cpue years
-  selex <- selex[CJ("Asel2", fleets, unique(cpue$Yr), c(4,8))]
-  selex[, c("factor", "morph", "label") := NULL]
-
-  # RESHAPE to long
-  selex <- melt(selex, id.vars=c("fleet", "year", "seas","gender"),
-    variable.name="age", value.name="data")
-
-  # CHANGE names & SORT
-  names(selex) <- c("qname", "year", "season", "unit", "age", "data")
-  setorder(selex, year, season, age, unit, qname)
-
-  # CONVERT to FLQuants
-  sel.pattern <- as(as.data.frame(selex), 'FLQuants')
+  # --- index.res (var)
+  index.res <- ss3index.res(cpue, fleets)
   
-  # ASSIGN names
-  names(sel.pattern) <- names(fleets)
-
   # --- FLIndices
   cpues <- lapply(names(fleets), function(x) FLIndexBiomass(name=x,
     index=index[[x]], index.q=index.q[[x]],
-    index.var=index.var[[x]],
+    index.var=index.res[[x]],
     sel.pattern=window(sel.pattern[[x]], start=dims(index[[x]])$minyear,
       end=dims(index[[x]])$maxyear)))
   
-  return(FLIndices(cpues))
+  if(length(fleets) > 1)
+    return(FLIndices(cpues))
+  else
+    return(cpues[[1]])
 
 } # }}}
 
@@ -471,7 +432,7 @@ readRPss3 <- function(file, vars) {
 	
 	for(i in names(vars)) {
 		# vector with string
-		str <- unlist(strsplit(dat[grep(i, dat, fixed=TRUE)], " "))
+		str <- unlist(strsplit(dat[grep(paste0(i, " "), dat, fixed=TRUE)], " "))
 		vars[[i]] <- as.numeric(str[vars[[i]]])
 	}
 	return(as.data.frame(t(unlist(vars))))
@@ -515,6 +476,95 @@ readFLQsss3 <- function(dir) {
 } # }}}
 
 # ss3slot functions {{{
+
+# ss3index
+ss3index <- function(cpue, fleets) {
+  
+  index <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "Obs")]
+
+  # CHANGE names and SORT
+  names(index) <- c("qname", "year", "season", "data")
+  setorder(index, year, season, qname)
+  index[, age:='all']
+
+  # CONVERT to FLQuants
+  return(as(index, "FLQuants"))
+}
+
+# ss3index.res
+ss3index.res <- function(cpue, fleets) {
+  
+  cpue[, Res := Obs-Exp]
+  index <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "Res")]
+
+  # CHANGE names and SORT
+  names(index) <- c("qname", "year", "season", "data")
+  setorder(index, year, season, qname)
+  index[, age:='all']
+
+  # CONVERT to FLQuants
+  return(as(index, "FLQuants"))
+}
+
+# ss3index.var
+ss3index.var <- function(cpue, fleets) {
+
+  index.var <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "SE")]
+
+  # CHANGE names and SORT
+  names(index.var) <- c("qname", "year", "season", "data")
+  setorder(index.var, year, season, qname)
+  index.var[, age:='all']
+
+  # CONVERT to FLQuants
+  index.var <- as(index.var, "FLQuants")
+
+  # units = SE
+  index.var <- lapply(index.var, "units<-", "se")
+
+  return(index.var)
+}
+
+# ss3index.q
+ss3index.q <- function(cpue, fleets) {
+
+  index.q <- cpue[Name %in% names(fleets), c("Name", "Yr", "Seas", "Calc_Q")]
+
+  # CHANGE names and SORT
+  names(index.q) <- c("qname", "year", "season", "data")
+  setorder(index.q, year, season, qname)
+  index.q[, age:='all']
+
+  # CONVERT to FLQuants
+  return(as(index.q, "FLQuants"))
+}
+
+# ss3sel.pattern
+ss3sel.pattern <- function(selex, years, fleets) {
+
+  setkey(selex, "factor", fleet, year, morph)
+
+  # SUBSET Asel2, fleets, cpue years
+  selex <- selex[CJ("Asel2", fleets, years, c(4,8))]
+  selex[, c("factor", "morph", "label") := NULL]
+
+  # RESHAPE to long
+  selex <- melt(selex, id.vars=c("fleet", "year", "seas","gender"),
+    variable.name="age", value.name="data")
+
+  # CHANGE names & SORT
+  names(selex) <- c("qname", "year", "season", "unit", "age", "data")
+  setorder(selex, year, season, age, unit, qname)
+
+  # CONVERT to FLQuants
+  sel.pattern <- as(as.data.frame(selex), 'FLQuants')
+  
+  # ASSIGN names
+  names(sel.pattern) <- names(fleets)
+
+  return(sel.pattern)
+}
+
 # ss3wt
 ss3wt <- function(endgrowth, dmns, birthseas) {
   

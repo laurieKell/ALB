@@ -2,16 +2,15 @@
 # ioalbmse/R/load.R
 
 # Copyright European Union, 2015-2016
-# Author: Iago Mosqueira (EC JRC) <iago.mosqueira@jrc.ec.europa.eu>
+# Author: Iago Mosqueira (EC JRC) <iago.mosqueira@ec.europa.eu>
 #
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
 # loadres(dirs, vars, progress=TRUE) {{{
 loadres <- function(dirs,
   vars=list(TotBio_Unfished=3, SPB_1950=3, SSB_MSY=3, SPB_2014=3, F_2014=3,
-  Fstd_MSY=3, TotYield_MSY=3, `SR_LN(R0)`=3, LIKELIHOOD=4, Convergence_Level=2,
-  Survey=28, Length_comp=2, Catch_like=2, Recruitment=2)
-  , progress=TRUE) {
+  Fstd_MSY=3, TotYield_MSY=3, `SR_LN(R0)`=3, LIKELIHOOD=2, Convergence_Level=2,
+  Survey=2, Length_comp=2, Catch_like=2, Recruitment=2), progress=TRUE) {
 
 	# Loop over dirs
 	out <- foreach(i=seq(length(dirs)), .errorhandling = "remove" ) %dopar% {
@@ -37,20 +36,58 @@ loadres <- function(dirs,
 } # }}}
 
 # loadom(dirs, progress=TRUE) {{{
-loadom <- function(dirs, progress=TRUE, fleets) {
+loadom <- function(dirs, progress=TRUE) {
 
 	# LOOP over dirs
-  om <- foreach(i=seq(length(dirs)), .combine='combine') %dopar% {
+  om <- foreach(i=seq(length(dirs)), .combine=combine) %dopar% {
     if(progress)
       cat("[", i, "]\n", sep="")
-    list(stk=readFLSss3(dirs[i]),
-      ind=readFLIBss3(dirs[i], fleets=fleets))
+    readFLSss3(dirs[i])
   }
 
   # DROP undeeded extra iters
-  om$stk <- slimFLStock(om$stk)
+  om <- slimFLStock(om)
 
 	return(om)
+} # }}}
+
+# loadindex(dirs, progress=TRUE) {{{
+loadindex <- function(dirs, progress=TRUE, fleets) {
+
+	# LOOP over dirs
+  ind <- foreach(i=seq(length(dirs))) %dopar% {
+
+    if(progress)
+      cat("[", i, "]\n", sep="")
+
+    out <- r4ss::SS_output(dirs[i], verbose=FALSE, hidewarn=TRUE, warn=FALSE,
+      printstats=FALSE, covar=FALSE, forecast=FALSE)
+    
+    # dfs from out
+    cpue <- data.table(out[[c("cpue")]])
+    selex <- data.table(out[["ageselex"]])
+
+    # EXTRACT index, residuals and selectivity
+    index <- ss3index(cpue, fleets)
+    index.res <- ss3index.res(cpue, fleets)
+    sel.pattern <- ss3sel.pattern(selex, unique(cpue$Yr), 3)
+    
+    # MERGE across fleets
+    list(index=index,
+      index.res=index.res,
+      sel.pattern=sel.pattern)
+  }
+
+  browser()
+  # ind: iter - slot - index/flqs
+  
+  # out: index - slot - iter
+  
+  index <- Reduce(combine, lapply(ind, "[[", 'index'))
+  index.q <- Reduce(combine, lapply(ind, "[[", 'index.q'))
+  sel.pattern <- Reduce(combine, lapply(ind, "[[", 'sel.pattern'))
+
+	return(FLQuants(index=index, index.q=index.q, sel.pattern=sel.pattern))
 } # }}}
 
 # loadhessian {{{

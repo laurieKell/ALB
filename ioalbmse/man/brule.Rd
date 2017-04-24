@@ -29,7 +29,7 @@ nunc euismod ante fringilla lobortis. Aliquam ullamcorper in diam non placerat.
 }
 \examples{
 
-omp <- fwdWindow(om, end=dims(om)$maxyear + 3, br)
+omp <- fwdWindow(om, end=dims(om)$maxyear + 3, rp)
 
 B0 <- brule(omp, sr=sro, years=years, bthreshold=1, blim=0.4*refpts['SBMSY'],
  ftarget=refpts['FMSY'], bmsy=refpts['SBMSY',],  

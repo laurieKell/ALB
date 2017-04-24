@@ -1,2 +1,4 @@
 indicators
-oms: om rpts rp sr ind res
+sa: sa res
+oms: om orp res osr rpts cpue
+om: om orp res osr rpts cpue

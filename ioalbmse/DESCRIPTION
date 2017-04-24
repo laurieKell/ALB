@@ -1,8 +1,8 @@
 Package: ioalbmse
 Title: Management Strategy Evaluation for the Indian Ocean Tuna Commission
     Albacore Tuna Stock
-Version: 0.5.7
-Date: 2017-04-02
+Version: 0.5.8
+Date: 2017-04-24
 Authors@R: person("Iago", "Mosqueira", email = "iago.mosqueira@ec.europa.eu",
   role = c("aut", "cre"))
 Description: Inputs and outputs of the work for the development of Management

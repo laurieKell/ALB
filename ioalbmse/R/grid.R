@@ -21,7 +21,13 @@ nameGrid <- function(df, dir, from=1) {
 
 # setgrid {{{
 setgrid <- function(sce, dir=paste0('grid_', format(Sys.time(), "%Y%m%d")),
-  base=system.file("sa/2016", package="ioalbmse"), name='abt', from=1) {
+  base=system.file("sa/2016", package="ioalbmse"), name='abt', from=1, write=TRUE) {
+	
+  # EXPAND grid from sce
+	grid <- nameGrid(expand.grid(sce, stringsAsFactors=FALSE), from=from)
+
+  if(!write)
+    return(grid)
 
   # SET ctl, dat full paths
   ctlf <- paste0(base, "/", name, ".ctl")
@@ -30,9 +36,6 @@ setgrid <- function(sce, dir=paste0('grid_', format(Sys.time(), "%Y%m%d")),
   # READ source files
   dats <- r4ss::SS_readdat(datf, verbose=FALSE)
   ctls <- r4ss::SS_readctl_3.24(file=ctlf, use_datlist=T, datlist=dats, verbose=FALSE)
-
-	# EXPAND grid from sce
-	grid <- nameGrid(expand.grid(sce, stringsAsFactors=FALSE), from=from)
 
   # NAMES in grid
   pars <- names(grid)[!names(grid) %in% c("number", "id")]

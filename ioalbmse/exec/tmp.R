@@ -8,6 +8,24 @@
 
 # ----
 
+
+# -- HACK: combine() fails in server {{{
+
+library(FLCore)
+load('grid20170117/om.RData')
+omf <- propagate(om[[1]], 720)
+for(i in 2:720) {
+  cat("[", i, "]\n")
+
+for(s in c("catch", "catch.n", "catch.wt",
+  "landings", "landings.n", "landings.wt",
+  "stock", "stock.n",
+  "m", "harvest"))
+  slot(omf, s)[,,,,,i] <- slot(om[[i]], s)
+}
+
+omf <- slimFLStock(omf) # }}}
+
 # HACK: Adding STD_SSB_MSY
 vsmsy <- loadres(dir=dir, grid=grid, vars=list(SSB_MSY=4))
 resF[, STD_SSB_MSY:=vsmsy$SSB_MSY]

@@ -20,13 +20,19 @@ library(ioalbmse)
 ```
 
 ```{r, data}
-data(om)
+data(oms)
 ```
 
 
-```{r}
-plot(iter(om, 1:720), iter(om, 721:1440)) + facet_grid(stock~qname, scales=('free'))
-```
+# Operating Model
+
+## Conditioning
+
+### FLStock
+
+### CPUE
+
+
 
 
 # References
