@@ -47,6 +47,7 @@ rungrid(grid, options="", dir=dir)
 
 # -- LOAD results
 
+
 # res
 res <- cbind(grid[,-9], loadres(dirs=grid$id))
 
@@ -93,10 +94,11 @@ save(om, orp, rpts, osr, res, cpue, file='omf.RData', compress='xz')
 
 # --- TRIM down om and res
 
-# load("omf.RData")
+# CHECK convergence
+id1 <- which(res$Convergence_Level <= 0.001)
 
 # data.frame of K (t) vs. habitat size (km2) for all ALB stocks
-prK <- data.frame(
+rK <- data.frame(
 	habitat=c(6073, 244, 3752, 7547, 3779, 7426),
 	K=c(474828, NA, 3.576e+5, 3.982e5, 3.5e5, 307830))
 dimnames(prK)[[1]] <- c("IO","MED","NAT","NPA","SAT","SPA")
@@ -108,15 +110,21 @@ mod <- lm(K ~ 0 + habitat, prK)
 cis <- confint(mod, level = 0.999) * 6073
 
 # idx
-idx <- res$TotBio_Unfished <= cis[2]
+id2 <- which(res$TotBio_Unfished <= cis[2])
 
+# DROP if VB_2014_1 < 2 * C_2014
+vb2014 <- unitSums(quantSums(sel(om)[,'2014',,1] * stock.n(om)[,'2014',,1] * stock.wt(om)[,'2014',,1]))
+id3 <- which(vb2014 > 80000)
+
+# iters TO KEEP
+idx <- Reduce(intersect, list(id1, id2, id3))
 
 # --- OM SUBSET, deGender and deSeason
 # om orp rpts osr res ind
 
-om <- deSeason(deGender(FLCore::iter(om, seq(1, 1440)[idx])))
+om <- deSS3(FLCore::iter(om, idx))
 orp <- FLBRP(om)
-res <- res[idx,]
+res <- res[idx, ]
 rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=2 * res$SSB_MSY, FMSY=res$Fstd_MSY,
   SB0=2 * res$SPB_1950, Ftarget=res$Fstd_MSY, SBlim=2 * 0.40 * res$SSB_MSY)
 osr <- list(model='shepherd',
@@ -125,19 +133,21 @@ osr <- list(model='shepherd',
 cpue <- list(index=cpue$index,
   sel.pattern=cpue$sel.pattern[,,,,,idx],
   index.q=cpue$index.q[,,,,,idx],
-  index.res=cpue$index.res[,,,,,idx]
-) 
+  index.res=cpue$index.res[,,,,,idx]) 
+omp <- FLBRP::fwdWindow(om, orp, end=2040)
 
-save(om, orp, res, rpts, osr, cpue, file='om.RData', compress='xz')
+save(om, omp, orp, res, rpts, osr, cpue, file='om.RData', compress='xz')
 
 # --- OMS - For TESTING
 
-idx <- sample(seq(dimnames(m(om))$iter), 100)
+idx <- sample(dimnames(m(om))$iter, 200)
 
 om <- FLCore::iter(om, idx)
 orp <- FLBRP(om)
-res <- res[idx, ]
-rpts <- rpts[, idx]
+omp <- FLBRP::fwdWindow(om, orp, end=2040)
+res <- res[rownames(res) %in% idx, ]
+rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=2 * res$SSB_MSY, FMSY=res$Fstd_MSY,
+  SB0=2 * res$SPB_1950, Ftarget=res$Fstd_MSY, SBlim=2 * 0.40 * res$SSB_MSY)
 osr <- list(model='shepherd',
   params=FLPar(a=res$steepness, b=exp(res$`SR_LN(R0)`), c=res$SPB_1950,
   iter=dim(res)[1]), formula=rec~(4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)))
@@ -147,6 +157,6 @@ cpue <- list(index=cpue$index,
   index.res=cpue$index.res[,,,,,idx]
 ) 
 
-save(om, orp, res, rpts, osr, cpue, file='oms.RData', compress='xz')
+save(om, omp, orp, res, rpts, osr, cpue, file='oms.RData', compress='xz')
 
 # --- OM - SUBSET based on analysis

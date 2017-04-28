@@ -429,10 +429,9 @@ readFLIBss3 <- function(dir, fleets) {
 readRPss3 <- function(file, vars) {
 	
 	dat <- readLines(file, n=2000)
-	
 	for(i in names(vars)) {
 		# vector with string
-		str <- unlist(strsplit(dat[grep(paste0(i, " "), dat, fixed=TRUE)], " "))
+		str <- unlist(strsplit(dat[grep(paste0(gsub("\\(", "\\\\\\(", i), "[ ,:]"), dat, fixed=FALSE)], " "))
 		vars[[i]] <- as.numeric(str[vars[[i]]])
 	}
 	return(as.data.frame(t(unlist(vars))))

@@ -32,7 +32,13 @@ data(oms)
 
 ### CPUE
 
+## Output
 
 
+# Management Procedures
+
+# Tuning
+
+# Results
 
 # References
