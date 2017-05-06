@@ -36,13 +36,13 @@ loadres <- function(dirs,
 } # }}}
 
 # loadom(dirs, progress=TRUE) {{{
-loadom <- function(dirs, progress=TRUE) {
+loadom <- function(dirs, progress=TRUE, ...) {
 
 	# LOOP over dirs
   om <- foreach(i=seq(length(dirs)), .combine=combine) %dopar% {
     if(progress)
       cat("[", i, "]\n", sep="")
-    readFLSss3(dirs[i])
+    readFLSss3(dirs[i], ...)
   }
 
   # DROP undeeded extra iters

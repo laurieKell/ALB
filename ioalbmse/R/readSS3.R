@@ -6,6 +6,10 @@
 #
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
+utils::globalVariables(c("BirthSeas", "Age", "Seas", "Gender", "Area", "Fleet",
+  "Morph", "Yr", "Era", "yr", "seas", "gender", "birthseas", "fleet",
+  "factor", "year", "morph"))
+
 # readFLBFss3 {{{
 readFLBFss3 <- function(dir, birthseas=unique(out$natage$BirthSeas)) {
 
@@ -36,7 +40,7 @@ readFLBFss3 <- function(dir, birthseas=unique(out$natage$BirthSeas)) {
   # --- BIOL (endgrowth, natage)
 
   # EXTRACT endgrowth
-  endgrowth <- data.table(out$endgrowth, key=c("Seas", "Gender", "BirthSeas", "Age"))
+  ndgrowth <- data.table(out$endgrowth, key=c("Seas", "Gender", "BirthSeas", "Age"))
 
   # -- STOCK.WT
   

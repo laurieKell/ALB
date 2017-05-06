@@ -1,11 +1,6 @@
 import("methods")
 import("FLCore")
 import("data.table")
-import("FLash")
-import("FLBRP")
-import("grid")
-import("foreach")
-import("ggplotFL")
 importFrom("ggstance",
   "geom_linerangeh")
 importFrom("stats", "optimize")

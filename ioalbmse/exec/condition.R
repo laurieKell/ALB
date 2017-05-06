@@ -58,8 +58,10 @@ rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=2 * res$SSB_MSY, FMSY=res$Fstd_MSY,
 # om
 om <- loadom(dirs=grid$id)
 
+range(om, c("minfbar", "maxfbar")) <- c(5,12)
+
 # sr
-osr <- list(model='shepherd',
+osr <- list(model='bevholtss3',
   params=FLPar(a=res$steepness, b=exp(res$`SR_LN(R0)`), c=res$SPB_1950,
   iter=dim(res)[1]), formula=rec ~ (4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)))
 
@@ -98,7 +100,7 @@ save(om, orp, rpts, osr, res, cpue, file='omf.RData', compress='xz')
 id1 <- which(res$Convergence_Level <= 0.001)
 
 # data.frame of K (t) vs. habitat size (km2) for all ALB stocks
-rK <- data.frame(
+prK <- data.frame(
 	habitat=c(6073, 244, 3752, 7547, 3779, 7426),
 	K=c(474828, NA, 3.576e+5, 3.982e5, 3.5e5, 307830))
 dimnames(prK)[[1]] <- c("IO","MED","NAT","NPA","SAT","SPA")
@@ -127,36 +129,39 @@ orp <- FLBRP(om)
 res <- res[idx, ]
 rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=2 * res$SSB_MSY, FMSY=res$Fstd_MSY,
   SB0=2 * res$SPB_1950, Ftarget=res$Fstd_MSY, SBlim=2 * 0.40 * res$SSB_MSY)
-osr <- list(model='shepherd',
-  params=FLPar(a=res$steepness, b=exp(res$`SR_LN(R0)`), c=res$SPB_1950,
-  iter=dim(res)[1]), formula=rec ~ (4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)))
+# bevholtss3
+osr <- predictModel(
+  params=FLPar(s=res$steepness, R0=exp(res$`SR_LN(R0)`), v=res$SPB_1950, iter=dim(res)[1]),
+  model=rec ~ (4 * s * R0 * ssb) / (v * (1 - s) + ssb * (5 * s - 1)))
 cpue <- list(index=cpue$index,
   sel.pattern=cpue$sel.pattern[,,,,,idx],
   index.q=cpue$index.q[,,,,,idx],
   index.res=cpue$index.res[,,,,,idx]) 
 omp <- FLBRP::fwdWindow(om, orp, end=2040)
 
-save(om, omp, orp, res, rpts, osr, cpue, file='om.RData', compress='xz')
+save(om, omp, res, rpts, osr, cpue, file='om.RData', compress='xz')
 
 # --- OMS - For TESTING
 
+set.seed(99)
 idx <- sample(dimnames(m(om))$iter, 200)
 
 om <- FLCore::iter(om, idx)
 orp <- FLBRP(om)
 omp <- FLBRP::fwdWindow(om, orp, end=2040)
-res <- res[rownames(res) %in% idx, ]
+res <- res[idx, ]
 rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=2 * res$SSB_MSY, FMSY=res$Fstd_MSY,
   SB0=2 * res$SPB_1950, Ftarget=res$Fstd_MSY, SBlim=2 * 0.40 * res$SSB_MSY)
-osr <- list(model='shepherd',
-  params=FLPar(a=res$steepness, b=exp(res$`SR_LN(R0)`), c=res$SPB_1950,
-  iter=dim(res)[1]), formula=rec~(4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)))
+osr <- predictModel(
+  params=FLPar(s=res$steepness, R0=exp(res$`SR_LN(R0)`), v=res$SPB_1950, iter=dim(res)[1]),
+  model=rec ~ (4 * s * R0 * ssb) / (v * (1 - s) + ssb * (5 * s - 1)))
 cpue <- list(index=cpue$index,
   sel.pattern=cpue$sel.pattern[,,,,,idx],
   index.q=cpue$index.q[,,,,,idx],
   index.res=cpue$index.res[,,,,,idx]
 ) 
 
-save(om, omp, orp, res, rpts, osr, cpue, file='oms.RData', compress='xz')
+save(om, omp, res, rpts, osr, cpue, file='oms.RData', compress='xz')
 
 # --- OM - SUBSET based on analysis
+

@@ -1,4 +1,4 @@
 indicators
 sa: sa res
-oms: om orp res osr rpts cpue
-om: om orp res osr rpts cpue
+oms: om omp orp res osr rpts cpue
+om: om omp orp res osr rpts cpue

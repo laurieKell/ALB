@@ -21,6 +21,9 @@ indicators <- list(
   # S7
   S7 = list(~yearSums((SB < SBMSY) + (F > FMSY))/length(SB), name = "P(Red)", 
     desc = "Probability of being in Kobe red quadrant"),
+  # S8
+  S8 = list(~yearSums((SB > SBMSY))/length(SB), name = "P(SB > SBMSY)", 
+    desc = "Probability of SB greater than SBMSY"),
   # F1
   F1 = list(~yearSums(SB > 0.2 * SB0)/length(SB), name = "P(SB > 0.20 SB0)", 
     desc = "Probability that spawner biomass is above 20% SB_0"),

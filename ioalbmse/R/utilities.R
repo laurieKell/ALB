@@ -219,7 +219,8 @@ deSeason <- function(object, spwnSeason=1, stockSeason=1) {
 	m[1,] <- m[1,] / spwnSeason
 
 	# CREATE FLStock
-	res <- FLStock(catch.n=catch.n, landings.n=landings.n, discards.n=discards.n,
+	res <- FLStock(name=name(object), desc=desc(object), range=range(object),
+    catch.n=catch.n, landings.n=landings.n, discards.n=discards.n,
 		catch.wt=catch.wt, landings.wt=landings.wt, discards.wt=discards.wt,
 		stock.n=stock.n, stock.wt=stock.wt, harvest=harvest,
 		m=m, m.spwn=m.spwn, harvest.spwn=harvest.spwn, mat=mat)
