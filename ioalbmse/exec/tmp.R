@@ -170,3 +170,91 @@ plot(omrr11, omrr12)
             file=OptRecord,append=TRUE)
     }
 }
+
+
+
+# --- SA
+
+data(sa)
+
+out <- r4ss::SS_output("/home/imosqueira/Dropbox/Backup/Desktop/IOTC_ALB_MSE/om/sa/run",
+  verbose=FALSE, hidewarn=TRUE, warn=FALSE,
+  printstats=FALSE, covar=FALSE, forecast=FALSE)
+
+# GET biasadj
+bias <- out$recruit[, c("year", "biasadj")]
+names(bias)[2] <- "data"
+bias <- as(bias, "FLQuant")
+bias[is.na(bias)] <- 0
+
+# SR model
+sasr <- predictModel(bias=bias,
+  model= rec ~ (4 * s * R0 * ssb)/(v * (1 - s) + ssb * (5 * s - 1)) * exp(-0.5 * bias * sd ^ 2),
+  params=FLPar(R0=exp(9.82), s=0.8, v=146374, sd=0.3192))
+
+sasr <- predictModel(bias=bias,
+  model= rec ~ (4 * s * R0 * ssb)/(v * (1 - s) + ssb * (5 * s - 1)),
+  params=FLPar(R0=exp(9.82), s=0.8, v=146374, sd=0.3192))
+
+# COMPARE predictModel vs. out$recruit
+
+plot(FLQuants(
+  EXPRECR=predict(sasr, ssb=ssb(sa)[,,'F',4]) / out$recruit$exp_recr,
+  ADJUSTED=predict(sasr, ssb=ssb(sa)[,,'F',4]) / out$recruit$adjusted,
+  PRED_RECR=predict(sasr, ssb=ssb(sa)[,,'F',4]) / out$recruit$pred_recr))
+
+tes <- fwd(sa, sr=sasr,
+  control=fwdControl(quant='f', year=2010:2014, value=45000))
+
+plot(tes)
+
+plot(
+log(
+  unitSums(rec(sa)[,,,4])
+    /
+  unitSums(predict(sasr, ssb=ssb(sa)[,,,4]) / 2)
+)
+)
+
+ mean(log(
+   unitSums(rec(sa)[,,,4])     /
+   unitSums(predict(sasr, ssb=ssb(sa)[,,,4]) / 2)
+ )
+ [,ac(1980:2014)], na.rm=TRUE)
+
+
+ 
+ggplot(out$recruit[out$recruit$year > 1978,], aes(x=year, y=dev)) + geom_line()
+
+
+# COMPARE rec
+
+rec(sa)[,,,4]
+
+ssb(sa)[,,'F',4] / out$recruit$spawn_bio
+
+unitSums(rec(sa)[,,,4]) / out$recruit$pred_recr
+unitSums(rec(sa)[,,,4]) / out$recruit$adjusted
+unitSums(rec(sa)[,,,4]) / out$recruit$exp_recr
+
+
+# Bias-adjustment in bevholtss3
+
+# REC RESIDUALS
+rdsr <- log(predict(osr, ssb=ssb(om) / 2) / (ssb(om) / 2))
+plot(FLQuants(RESID=rdsr, REC=rec(om), PRED=predict(osr, ssb=ssb(om)/2)))
+
+
+
+# --- BD
+# MPB
+library(mpb)
+ll3 <- ocpue$index
+bd <- biodyn(catch=catch(om), indices=FLQuants(LL3=ll3))
+setParams(bd) <- ll3
+setControl(bd) <- params(bd)
+bd <- fit(bd, ll3)
+
+save(ll3, bd, file='~/bd_LK.RData')
+
+

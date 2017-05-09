@@ -9,7 +9,7 @@
 library(ioalbmse)
 
 library(doParallel)
-registerDoParallel(6)
+registerDoParallel(3)
 
 # -- SETUP scenarios {{{
 sce <- list(
@@ -60,7 +60,7 @@ om <- loadom(dirs=grid$id)
 
 range(om, c("minfbar", "maxfbar")) <- c(5,12)
 
-# sr
+# sr (bias, sd)
 osr <- list(model='bevholtss3',
   params=FLPar(a=res$steepness, b=exp(res$`SR_LN(R0)`), c=res$SPB_1950,
   iter=dim(res)[1]), formula=rec ~ (4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)))
