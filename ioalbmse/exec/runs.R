@@ -6,10 +6,11 @@
 #
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
+library(plyr)
 library(ioalbmse)
 
 library(doParallel)
-registerDoParallel(5)
+registerDoParallel(6)
 
 # --- SETUP
 
@@ -17,138 +18,211 @@ registerDoParallel(5)
 data(indicators)
 data(oms)
 
-# CPUE
+# PREPARE cpue
 cpue <- propagate(window(ocpue$index, end=2040), 200)
 cpuesel <- ocpue$sel.pattern[-1,'2014']
+oemparams <- FLPar(sd=c(sqrt(yearVars(ocpue$index.res))),
+  b=c(apply(osr$residuals, c(1,3:6), function(x) acf(x, plot=FALSE)$acf[2])))
 
-# SR residuals: sd, b
-resd <- c(sqrt(yearVars(ocpue$index.res))*4)
-rerho <- c(apply(ocpue$index.res, c(1,3:6), function(x) acf(x, plot=FALSE)$acf[2]))
-sres <- FLQuant(0, dimnames=dimnames(stock(omp)))
+oemparams <- FLPar(sd=0.3, b=0)
+
+# GENERATE SR residuals
+resd <- c(sqrt(yearVars(osr$residuals)))
+rerho <- c(apply(osr$residuals, c(1,3:6), function(x) acf(x, plot=FALSE)$acf[2]))
+
+sres <- FLQuant(0, dimnames=dimnames(window(stock(omp), start=2014)))
 for(i in seq(dim(sres)[6]))
-  sres[,,,,,i] <- rlnoise(1, sres[,,,,,i], sd=resd[1], b=0)
-osr@.Data[['residuals']] <- sres
+  sres[,,,,,i] <- rlnoise(1, sres[,,,,,i], sd=resd[1], b=rerho[i])
+osr@.Data[[1]] <- sres
 
 # ARGUMENTS
 years <- seq(2014, 2034, by=2)
-
+outyears <- years[1] + c(1, 5, 10, 20)
 
 # --- LONG TERM projection at F_bar~0
 
-Rltom <- fwd(omp, sr=osr, residuals=osr$residuals,
-  control=fwdControl(quant='f', year=2015:2040, value=0.0001))
+Rltom <- fwd(omp, sr=osr, residuals=sres,
+  control=fwdControl(quant='f', year=2015:2040, value=1e-5))
 
 # --- CONSTANT catch
 
-Rconc <- fwd(omp, sr=osr, residuals=osr$residuals,
-  control=fwdControl(quant='catch', year=2015:2040, value=catch(omp)[,'2014']))
+Rconc <- fwd(omp, sr=osr, residuals=sres,
+  control=fwdControl(quant='catch', year=2015:2040, value=rpts$MSY))
 
 # --- CONSTANT F
 
-Rconf <- fwd(omp, sr=osr, residuals=osr$residuals,
-  control=fwdControl(quant='f', year=2015:2040, value=fbar(omp)[,'2014']))
+Rconf <- fwd(omp, sr=osr, residuals=sres,
+  control=fwdControl(quant='f', year=2015:2040, value=rpts$FMSY))
 
 plot(Rltom, Rconc, Rconf)
+
+save(Rltom, Rconc, Rconf, file="base_runs.RData", compress="xz")
 
 
 # --- msePT
 
-# Robustness trial
+# Initial test run: 7.2 min w/SA, 1.1 min w/o
 
-R0pt <- fwd(omp, sr=osr,
-  control=fwdControl(list(year=2014, quant="f", value=fbar(omp)[,'2014'] * 5)))
+system.time(P0 <- msePT(omp, osr, cpue=cpue, cpuesel=cpuesel, years=years,
+  hcrparams=FLPar(lambda=0.5, dltac=0.25, dhtac=0.15, Dlimit=0.15, Dtarget=0.50), 
+  oemparams=oemparams))
 
-R0pt <- msePT(R0, osr, cpue=cpue, cpuesel=cpuesel, years=2015:2034,
-  hcrparams=FLPar(lambda=1, dltac=0.15, dhtac=0.15, Dlimit=0.10, Dtarget=0.40), 
-  oemparams=FLPar(sd=0.3, b=0.2))
+plot(P0$om) + geom_vline(aes(xintercept=an(ISOdate(2015,1,1))))
 
-plot(R0pt$om) + geom_vline(aes(xintercept=an(ISOdate(2015,1,1))))
+# Perturbation trial, F_2013 = F_2012 * 3 + MP
 
+P0pt <- fwd(omp, sr=osr,
+  control=fwdControl(list(year=2013, quant="f", value=c(fbar(omp)[,'2012'] * 2))))
 
-# Tuning
+P0pt <- msePT(P0pt, osr, cpue=cpue, cpuesel=cpuesel, years=years,
+  hcrparams=FLPar(lambda=0.5, dltac=0.25, dhtac=0.15, Dlimit=0.15, Dtarget=0.50), 
+  oemparams=FLPar(sd=0.2, b=0))
 
-grid <- list(lambda=seq(0.50, 1.50, length=5),
-  dltac=seq(0.05, 0.25, length=2), dhtac=seq(0.05, 0.25, length=2),
-  Dlimit=seq(0.10, 0.20, length=2), Dtarget=seq(0.30, 0.50, length=2))
+plot(window(om, end=2012), P0pt$om) + geom_vline(aes(xintercept=an(ISOdate(2013,1,1)))) +
+  geom_vline(aes(xintercept=an(ISOdate(2015,1,1))))
 
-# TEST
-grid <- list(lambda=seq(0.50, 1.50, length=5),
-  dltac=0.10, dhtac=0.15, Dlimit=c(0.10, 0.20), Dtarget=c(0.40, 0.50))
-
-system.time(RG <- doRuns(msePT, grid=grid, omp=omp, sr=osr, dlag=2,
-  cpue=cpue, cpuesel=cpuesel, years=years, oemparams=FLPar(b=0, sd=0)))
-
-plotOMR(om, RG, qname='fbar')
-plotOMR(om, RG, qname='catch')
-
-# P(SB_2038 > SBMSY)
-t1 <- lapply(RG, function(x) sum(c(ssb(x)[,ac(2015:2034)]) > c(rpts$SBMSY)) / (200 * 24))
-
-pRG <- performance(RG, indicators, rpts, years=2034, grid=grid)
-qRG <- performance(RG, indicators, rpts, years=2034,
-  probs=c(0.1, 0.25, 0.50, 0.75, 0.90), grid=grid)
-
-qRG2 <- quantilePerf(pRG)
-
-qRG[indicator == 'S8', `50%`>0.40 & `50%`<0.60]
-
-# P(SB
-qRG[indicator == 'S3', `25%`>1]
-
-save(RG, pRG, qRG, file="msePT_grid.RData", compress="xz")
+save(P0, P0pt, file="pt/msePT_runs.RData", compress="xz")
 
 
+# TUNING
+
+# Run 1st grid: 5000 runs
+
+grid <- list(lambda=seq(0.5, 1.50, length=5),
+  dltac=seq(0.10, 0.30, length=3), dhtac=seq(0.10, 0.30, length=3),
+  Dlimit=seq(0.10, 0.20, length=3), Dtarget=seq(0.30, 0.50, length=3))
+
+# 200 cores, 6819 = 1h 53m
+system.time(rgPT <- doRuns(msePT, grid=grid, omp=omp, sr=osr,
+  cpue=cpue, cpuesel=cpuesel, years=years, oemparams=FLPar(sd=0.3, b=0)))
+
+save(rgPT, file="pt/grid_msePT_5000.RData", compress="xz")
+
+# COMPUTE P(SB_2015-2034 > SBMSY)
+tun1 <- unlist(lapply(rgPT,
+  function(x) sum(c(ssb(x)[,ac(2015:2034)]) > c(rpts$SBMSY)) / (length(ssb(x)[,ac(2015:2034)]))))
+
+# SUBSET runs with 0.48 > P < 0.25
+idx1 <- names(tun1)[tun1 < 0.501 & tun1 > 0.499]
+rg1pt <- rgPT[sample(idx1, 4)]
+
+prg1pt <- performance(rg1pt, indicators, rpts, years=2034, grid=grid, mp="PT")
+qrg1pt <- performance(rg1pt, indicators, rpts, years=2034,
+  probs=c(0.1, 0.25, 0.50, 0.75, 0.90), grid=grid, mp="PT")
+
+save(rg1pt, prg1pt, qrg1pt, file="pt/rg1_msePT.RData", compress="xz")
+
+# COMPUTE P(SB_2015-2034 > SBMSY & F_2015-2034 < FMSY)
+tun2 <- unlist(lapply(rgPT, function(x)
+  sum(c(ssb(x)[,ac(2015:2034)]) > c(rpts$SBMSY) & c(fbar(x)[,ac(2015:2034)]) < c(rpts$FMSY)) /
+    (length(ssb(x)[,ac(2015:2034)]))))
+
+# SUBSET runs with 0.72 > P < 0.78
+idx2 <- names(tun2)[tun2 < 0.751 & tun2 > 0.749]
+rg2pt <- rgPT[sample(idx2, 4)]
+
+prg2pt <- performance(rg2pt, indicators, rpts, years=outyears, grid=grid, mp="PT")
+qrg2pt <- performance(rg2pt, indicators, rpts, years=outyears,
+  probs=c(0.1, 0.25, 0.50, 0.75, 0.90), grid=grid, mp="PT")
+
+save(rg2pt, prg2pt, qrg2pt, file="pt/rg2_msePT.RData", compress="xz")
+
+
+# ERROR levels
+
+# RECRUITMENT failure
 
 
 # --- mseIndex
 
-# ROBUSTNESS TEST
+# Initial test run
+
+system.time(I0 <- mseIndex(omp=omp, sr=osr, cpue=cpue, cpuesel=cpuesel,
+  hcrparams=FLPar(lambda=1.05, ny=5, dltac=0.20, dhtac=0.10),
+  years=years, oemparams=FLPar(b=0.3, sd=0), imparams=NA, verbose=TRUE))
+
+plot(I0$om) + geom_vline(aes(xintercept=an(ISOdate(2015,1,1))))
+
+# Perturbation trial, F_2013 = F_2012 * 3 + MP
+
+I0pt <- fwd(omp, sr=osr,
+  control=fwdControl(list(year=2013, quant="f", value=c(fbar(omp)[,'2012'] * 2))))
+
+I0pt <- mseIndex(I0pt, sr=osr, cpue=cpue, cpuesel=cpuesel,
+  hcrparams=FLPar(lambda=1.05, ny=5, dltac=0.20, dhtac=0.10),
+  years=years, oemparams=FLPar(b=0.3, sd=0), imparams=NA, verbose=TRUE)
+ 
+plot(window(om, end=2012), I0pt$om) + geom_vline(aes(xintercept=an(ISOdate(2013,1,1)))) +
+  geom_vline(aes(xintercept=an(ISOdate(2015,1,1))))
+
+save(I0, I0pt, file="ind/mseIND_runs.RData", compress="xz")
+
+# TUNING
+
+# Run grid: 270 runs
+
+grid <- list(lambda=seq(0.2, 2, length=20), ny=seq(3, 5),
+  dltac=seq(0.10, 0.30, length=3), dhtac=seq(0.10, 0.30, length=3))
+
+system.time(rgIND <- doRuns(mseIndex, grid=grid, omp=omp, sr=osr,
+  cpue=cpue, cpuesel=cpuesel, years=years, oemparams=FLPar(sd=0.3, b=0)))
+
+save(rgIND, file="grid_mseIndex.RData", compress="xz")
+
+# COMPUTE P(SB_2015-2034 > SBMSY)
+tun1 <- unlist(lapply(rgIND,
+  function(x) sum(c(ssb(x[,ac(2020:2034)]) > c(rpts$SBMSY)) / (length(ssb(x)[,ac(2020:2034)]))))
+
+# SUBSET runs with 0.48 > P < 0.25
+idx1 <- names(sort(abs(tun1 - 0.50))[1:4])
+rg1ind <- rgIND[idx1]
+
+prg1ind <- performance(rg1ind, indicators, rpts, years=outyears, grid=grid, mp="IND")
+qrg1ind <- performance(rg1ind, indicators, rpts, years=outyears,
+  probs=c(0.1, 0.25, 0.50, 0.75, 0.90), grid=grid, mp="IND")
+
+save(rg1ind, prg1ind, qrg1ind, file="ind/tun1_mseIndex.RData", compress="xz")
+
+# COMPUTE P(SB_2015-2034 > SBMSY & F_2015-2034 < FMSY)
+
+t2 <- lapply(rgIND, function(x)
+  FLQuant(sum((ssb(x)[,ac(2020:2034)] / rpts$SBMSY) > 1 & (fbar(x)[,ac(2020:2034)] / rpts$FMSY) < 1) / length(ssb(x)[,ac(2020:2034)])))
+
+tun2 <- unlist(lapply(rgIND, function(x)
+  sum(c(ssb(x)[,ac(2020:2034)]) > c(rpts$SBMSY) & c(fbar(x)[,ac(2020:2034)]) < c(rpts$FMSY)) /
+    (length(ssb(x)[,ac(2020:2034)]))))
+
+# SUBSET runs with 0.72 > P < 0.78
+idx2 <- names(sort(abs(tun2 - 0.75))[1:4])
+rg2ind <- rgIND[idx2]
+
+prg2ind <- performance(rg2ind, indicators, rpts, years=outyears, grid=grid, mp="IND")
+qrg2ind <- performance(rg2ind, indicators, rpts, years=outyears,
+  probs=c(0.1, 0.25, 0.50, 0.75, 0.90), grid=grid, mp="IND")
+
+save(rg2ind, prg2ind, qrg2ind, file="ind/tun2_mseIndex.RData", compress="xz")
 
 
-# NO ERROR
-
-R0 <- mseIndex(omp=omp, sr=osr, cpue=index,
-  hcrparams=FLPar(lambda=0.95, ny=5, dltac=0.20, dhtac=0.10),
-  years=years, oemparams=FLPar(b=0, sd=0), imparams=NA, verbose=TRUE)
-plot(R0$om) + geom_vline(aes(xintercept=as.numeric(ISOdate(years[1],1,1))))
-
-ggplot(ssb(R0$om), aes(x=date, y=data, colour=iter)) + geom_line() + geom_vline(aes(xintercept=as.numeric(ISOdate(2014,1,1)))) + theme(legend.position='none')
-
-plot(R1$omp) + geom_vline(aes(xintercept=as.numeric(ISOdate(2014,1,1))))
-
-plot(FLQuants(cpue=R0$cpue, stock=stock(R0$om)))
-
-plotOMR(om, FLStocks(R0=R0$om, R1=R1$om), rpts['SBMSY',])
-
-performance(R0$om, indicators, rpts)
-
-performance(FLStocks(R0=R0$om, R1=R1$om), indicators, rpts)
-
-# TUNE
-
-T0 <- tune(mseIndex,
-  grid=list(lambda=seq(0.90, 1.10, length=5), dltac=c(0.15, 0.10), dhtac=c(0.15, 0.20), ny=5),
-  indicators=indicators, refpts=rpts, omp=omp, sr=osr, cpue=index,
-  years=years, oemparams=FLPar(b=0, sd=0), imparams=NA)
-
-qT0 <- T0[, as.list(quantile(data, probs=c(0.1, 0.25, 0.50, 0.75, 0.90), na.rm=TRUE)),
-        keyby=list(mp, run, indicator, name, year)]
-
-# Find tuned params
-# P(SB == SB_MSY) = 0.50
-# P(kobe == 'green') = 75%
 
 
-# FINISH msePT
-# CORRECT mseIndex
-# ADD mseIndexTg
 
-# DO RUNS
 
-# CLARIFY tuning selection
 
-# OUTPUT plots for all runs and tuned ones
 
-# PREPARE presentation
 
-# THINK about STORAGE of outputs data.table & FLSs
+
+
+
+# COMBINE datasets
+
+# TUNING 1
+
+names(rg1ind) <- paste("IND_", names(rg1ind))
+names(rg1pt) <- paste("PT_", names(rg1pt))
+
+runs <- FLStocks(c(rg1ind, rg1pt))
+perf <- cbind(prg1ind, prg1pt)
+qperf <- cbind(qrg1ind, qrg1pt)
+
+save(runs, perf, qperf, file="tun1.RData", compress="xz")
+

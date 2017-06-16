@@ -8,7 +8,7 @@
 
 # loadres(dirs, vars, progress=TRUE) {{{
 loadres <- function(dirs,
-  vars=list(TotBio_Unfished=3, SPB_1950=3, SSB_MSY=3, SPB_2014=3, F_2014=3,
+  vars=list(TotBio_Unfished=3, SPB_1950=3, SSB_MSY=3, SPB_2015=3, F_2015=3,
   Fstd_MSY=3, TotYield_MSY=3, `SR_LN(R0)`=3, LIKELIHOOD=2, Convergence_Level=2,
   Survey=2, Length_comp=2, Catch_like=2, Recruitment=2), progress=TRUE) {
 
@@ -17,9 +17,14 @@ loadres <- function(dirs,
 
 		if(progress)
 			cat(paste0('[', i, ']\n'))
-		# Load model outputs
+    
+    # CONVERGED?
+    if(!file.exists(paste0(dirs[i], "/covar.sso"))) {
+      setNames(data.frame(matrix(NA, ncol = length(vars), nrow = 1)), names(vars))
+    } else {
+    # READ results
 		readRPss3(paste(dirs[i], "Report.sso", sep="/"), vars)
-
+    }
 	}
 
   # rbind 
@@ -35,6 +40,28 @@ loadres <- function(dirs,
 	return(res)
 } # }}}
 
+# loadrec(dirs, progress=TRUE) {{{
+loadrec <- function(dirs, progress=TRUE, object="resid") {
+
+	# Loop over dirs
+	out <- foreach(i=seq(length(dirs)), .errorhandling = "remove" ) %dopar% {
+
+		if(progress)
+			cat(paste0('[', i, ']\n'))
+
+		readFLQsss3(dirs[i])
+	}
+	
+  res <- foreach(i=object, .errorhandling = "remove" ) %dopar% {
+    lapply(out, "[[", i)
+  }
+  
+  res <- lapply(res, function(x) Reduce(combine, x))
+  names(res) <- object
+
+	return(res)
+} # }}}
+
 # loadom(dirs, progress=TRUE) {{{
 loadom <- function(dirs, progress=TRUE, ...) {
 
@@ -46,7 +73,7 @@ loadom <- function(dirs, progress=TRUE, ...) {
   }
 
   # DROP undeeded extra iters
-  om <- slimFLStock(om)
+  # om <- slimFLStock(om)
 
 	return(om)
 } # }}}
@@ -78,7 +105,6 @@ loadindex <- function(dirs, progress=TRUE, fleets) {
       sel.pattern=sel.pattern)
   }
 
-  browser()
   # ind: iter - slot - index/flqs
   
   # out: index - slot - iter

@@ -60,13 +60,13 @@ om <- loadom(dirs=grid$id)
 
 range(om, c("minfbar", "maxfbar")) <- c(5,12)
 
-# sr (bias, sd)
+# sr (residuals)
+resid <- loadrec(grid$id)[['resid']]
+
 osr <- list(model='bevholtss3',
   params=FLPar(a=res$steepness, b=exp(res$`SR_LN(R0)`), c=res$SPB_1950,
-  iter=dim(res)[1]), formula=rec ~ (4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)))
-
-# brp
-orp <- FLBRP(om)
+  iter=dim(res)[1]), formula=rec ~ (4 * a * b * ssb) / (c * (1 - a) + ssb * (5 * a - 1)),
+  residuals=resid[, ac(1975:2012)])
 
 # index: cpue, sd, b
 cpue <- foreach(i=seq(length(grid$id))) %dopar% {
@@ -83,7 +83,7 @@ save(cpue, index, sel.pattern, index.res, index.q, file='cpue.RData', compress='
 
 # cpue list
 # TODO REVIEW deSeason, deGender
-cpue <- list(index=seasonMeans(index),
+ocpue <- list(index=seasonMeans(index),
   sel.pattern=seasonMeans(unitMeans(sel.pattern)),
   index.q=seasonMeans(index.q),
   index.res=seasonMeans(index.res)
@@ -91,8 +91,7 @@ cpue <- list(index=seasonMeans(index),
 
 # --- OMF
 # om orp rpts osr res ind
-save(om, orp, rpts, osr, res, cpue, file='omf.RData', compress='xz')
-
+save(om, rpts, osr, res, ocpue, file='omf.RData', compress='xz')
 
 # --- TRIM down om and res
 
@@ -125,21 +124,22 @@ idx <- Reduce(intersect, list(id1, id2, id3))
 # om orp rpts osr res ind
 
 om <- deSS3(FLCore::iter(om, idx))
+  desc(om) <- "IO ALB MSE SS3 grid of 20170117, 655 selected runs"
 orp <- FLBRP(om)
 res <- res[idx, ]
 rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=2 * res$SSB_MSY, FMSY=res$Fstd_MSY,
   SB0=2 * res$SPB_1950, Ftarget=res$Fstd_MSY, SBlim=2 * 0.40 * res$SSB_MSY)
 # bevholtss3
-osr <- predictModel(
+osr <- predictModel(residuals=FLCore::iter(resid,idx)[, ac(1975:2012)],
   params=FLPar(s=res$steepness, R0=exp(res$`SR_LN(R0)`), v=res$SPB_1950, iter=dim(res)[1]),
   model=rec ~ (4 * s * R0 * ssb) / (v * (1 - s) + ssb * (5 * s - 1)))
-cpue <- list(index=cpue$index,
-  sel.pattern=cpue$sel.pattern[,,,,,idx],
-  index.q=cpue$index.q[,,,,,idx],
-  index.res=cpue$index.res[,,,,,idx]) 
+ocpue <- list(index=ocpue$index,
+  sel.pattern=ocpue$sel.pattern[,,,,,idx],
+  index.q=ocpue$index.q[,,,,,idx],
+  index.res=ocpue$index.res[,,,,,idx]) 
 omp <- FLBRP::fwdWindow(om, orp, end=2040)
 
-save(om, omp, res, rpts, osr, cpue, file='om.RData', compress='xz')
+save(om, omp, res, rpts, osr, ocpue, file='om.RData', compress='xz')
 
 # --- OMS - For TESTING
 
@@ -147,21 +147,22 @@ set.seed(99)
 idx <- sample(dimnames(m(om))$iter, 200)
 
 om <- FLCore::iter(om, idx)
+  desc(om) <- "IO ALB MSE SS3 grid of 20170117, 200 randomly selected runs"
 orp <- FLBRP(om)
 omp <- FLBRP::fwdWindow(om, orp, end=2040)
 res <- res[idx, ]
 rpts <- FLPar(MSY=res$TotYield_MSY, SBMSY=2 * res$SSB_MSY, FMSY=res$Fstd_MSY,
   SB0=2 * res$SPB_1950, Ftarget=res$Fstd_MSY, SBlim=2 * 0.40 * res$SSB_MSY)
-osr <- predictModel(
+osr <- predictModel(residuals=FLCore::iter(resid,idx)[, ac(1975:2012)],
   params=FLPar(s=res$steepness, R0=exp(res$`SR_LN(R0)`), v=res$SPB_1950, iter=dim(res)[1]),
   model=rec ~ (4 * s * R0 * ssb) / (v * (1 - s) + ssb * (5 * s - 1)))
-cpue <- list(index=cpue$index,
-  sel.pattern=cpue$sel.pattern[,,,,,idx],
-  index.q=cpue$index.q[,,,,,idx],
-  index.res=cpue$index.res[,,,,,idx]
+ocpue <- list(index=ocpue$index,
+  sel.pattern=ocpue$sel.pattern[,,,,,idx],
+  index.q=ocpue$index.q[,,,,,idx],
+  index.res=ocpue$index.res[,,,,,idx]
 ) 
 
-save(om, omp, res, rpts, osr, cpue, file='oms.RData', compress='xz')
+save(om, omp, res, rpts, osr, ocpue, file='oms.RData', compress='xz')
 
 # --- OM - SUBSET based on analysis
 
