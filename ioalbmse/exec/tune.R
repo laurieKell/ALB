@@ -26,6 +26,9 @@ oemparams <- FLPar(sd=c(sqrt(yearVars(ocpue$index.res))),
 oemparams <- FLPar(sd=0.3, b=0)
 
 # GENERATE SR residuals
+
+sres <- rlnoise(200, len=FLQuant(0, dimnames=dimnames(cpue)), sd=oemparams$sd, b=oemparams$b, seed=2017) 
+
 resd <- c(sqrt(yearVars(osr$residuals)))
 rerho <- c(apply(osr$residuals, c(1,3:6), function(x) acf(x, plot=FALSE)$acf[2]))
 

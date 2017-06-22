@@ -65,15 +65,30 @@ loadrec <- function(dirs, progress=TRUE, object="resid") {
 # loadom(dirs, progress=TRUE) {{{
 loadom <- function(dirs, progress=TRUE, ...) {
 
+  master <- readFLSss3(dirs[1], ...)
+
 	# LOOP over dirs
-  om <- foreach(i=seq(length(dirs)), .combine=combine) %dopar% {
+  # om <- foreach(i=seq(length(dirs)), .combine=combine) %dopar% {
+  om <- foreach(i=seq(length(dirs)),
+    .combine=function(...) rbindlist(list(...)), .multicombine=TRUE) %dopar% {
+
     if(progress)
       cat("[", i, "]\n", sep="")
-    readFLSss3(dirs[i], ...)
+
+    dt <- data.table(as.data.frame(readFLSss3(dirs[i], ...)))
+    dt[, iter := NULL]
+    dt[, iter := i]
+    dt
   }
+  
+  if(progress)
+    cat("[ Converting ... ]\n")
+  
+  om <- as.FLStock(om, units=units(master))
+  range(om) <- range(master)
 
   # DROP undeeded extra iters
-  # om <- slimFLStock(om)
+  om <- slimFLStock(om)
 
 	return(om)
 } # }}}

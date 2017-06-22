@@ -133,9 +133,11 @@ rungrid <- function(grid, dir=paste0('grid', format(Sys.time(), "%Y%m%d")),
 	if (.Platform$OS.type == "unix") {
     ss3path <- system.file("bin/linux/", package="ioalbmse")
     sep <- ":"
+    exe <- "ss3"
 	} else if (.Platform$OS.type == "windows") {
     ss3path <- system.file("bin/windows/", package="ioalbmse")
     sep <- ";"
+    exe <- "ss3.exe"
   }
 
   # SET $PATH
@@ -153,7 +155,7 @@ rungrid <- function(grid, dir=paste0('grid', format(Sys.time(), "%Y%m%d")),
 		# SS3!
 		workdir <- getwd()
 		setwd(dirname)
-		system(paste("ss3", options), ignore.stdout = TRUE, ignore.stderr = TRUE)
+		system(paste(exe, options), ignore.stdout = TRUE, ignore.stderr = TRUE)
 		setwd(workdir)
 
 		cat("DONE ", grid[row,'id'], ": ", date(), "\n", file=logfile, append=TRUE)

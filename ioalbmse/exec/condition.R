@@ -166,3 +166,13 @@ save(om, omp, res, rpts, osr, ocpue, file='oms.RData', compress='xz')
 
 # --- OM - SUBSET based on analysis
 
+# GLM
+
+# M 0404 0202 0403
+# h 0.7 0.9
+# ess 20 100
+# cpuecv 0.2 0.5
+
+# PCA
+
+# AI
