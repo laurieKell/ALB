@@ -7,6 +7,10 @@ output:
     fig_caption: yes
     number_sections: yes
     toc: yes
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEncoding{UTF-8}
 tags:
 abstract:
 license: Creative Commons Attribution-ShareAlike 4.0 International Public License
@@ -19,12 +23,13 @@ opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE,
 library(ioalbmse)
 ```
 
-```{r, data}
-data(oms)
-```
 
 
 # Operating Model
+
+```{r, data}
+data(oms)
+```
 
 ## Conditioning
 

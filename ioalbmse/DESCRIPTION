@@ -13,16 +13,23 @@ Description: Inputs and outputs of the work for the development of Management
 Depends:
     R (>= 3.3.2),
     FLCore (>= 2.5.20170101),
-    mse
+    FLFishery,
+    mse,
+    mseMPs,
+    ss3om
 Imports:
     methods,
+    foreach,
     data.table,
     ggstance,
+    stats,
     r4ss (>= 1.25.0),
-Additional_repositories: http://iotcwpm.github.com/R
+Additional_repositories: http://iotcwpm.github.com/R http://flr-project.org/R
 Suggests:
     doParallel,
-    testthat
+    testthat,
+    knitr
+VignetteBuilder: knitr
 License: European Union Public License
 LazyData: false
 RoxygenNote: 6.0.1
