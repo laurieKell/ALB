@@ -47,7 +47,6 @@ rungrid(grid, options="", dir=dir)
 
 # -- LOAD results
 
-
 # res
 res <- cbind(grid[,-9], loadres(dirs=grid$id))
 
@@ -82,7 +81,6 @@ index.q <- Reduce('combine', lapply(cpue, function(x) x@index.q))
 save(cpue, index, sel.pattern, index.res, index.q, file='cpue.RData', compress='xz')
 
 # cpue list
-# TODO REVIEW deSeason, deGender
 ocpue <- list(index=seasonMeans(index),
   sel.pattern=seasonMeans(unitMeans(sel.pattern)),
   index.q=seasonMeans(index.q),

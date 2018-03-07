@@ -19,10 +19,11 @@ data(oms)
 
 # PREPARE cpue
 cpue <- propagate(window(ocpue$index, end=2040), 200)
-cpuesel <- ocpue$sel.pattern[-1,'2014']
+# BUG Order of age, fix in condition.R
+cpuesel <- ocpue$sel.pattern[c(1,7:14,2:6),'2014']
+
 oemparams <- FLPar(sd=c(sqrt(yearVars(ocpue$index.res))),
   b=c(apply(osr$residuals, c(1,3:6), function(x) acf(x, plot=FALSE)$acf[2])))
-
 oemparams <- FLPar(sd=0.3, b=0)
 
 # GENERATE SR residuals
@@ -46,12 +47,12 @@ Rltom <- fwd(omp, sr=osr, residuals=sres,
 # --- CONSTANT catch
 
 Rconc <- fwd(omp, sr=osr, residuals=sres,
-  control=fwdControl(quant='catch', year=2015:2040, value=rpts$MSY))
+  control=fwdControl(list(quant='catch', year=2015:2040, value=rep(c(rpts$MSY), each=26))))
 
 # --- CONSTANT F
 
 Rconf <- fwd(omp, sr=osr, residuals=sres,
-  control=fwdControl(quant='f', year=2015:2040, value=rpts$FMSY))
+  control=fwdControl(list(quant='f', year=2015:2040, value=rep(c(rpts$FMSY), each=26))))
 
 plot(Rltom, Rconc, Rconf)
 
@@ -62,9 +63,9 @@ save(Rltom, Rconc, Rconf, file="base_runs.RData", compress="xz")
 
 # Initial test run: 7.2 min w/SA, 1.1 min w/o
 
-system.time(P0 <- msePT(omp, osr, cpue=cpue, cpuesel=cpuesel, years=years,
+system.time(P0 <- msePT(omp, osr, rpts, cpue=cpue, cpuesel=cpuesel, years=years,
   hcrparams=FLPar(lambda=0.5, dltac=0.25, dhtac=0.15, Dlimit=0.15, Dtarget=0.50), 
-  oemparams=oemparams))
+  oemparams=oemparams, sa=FALSE))
 
 plot(P0$om) + geom_vline(aes(xintercept=an(ISOdate(2015,1,1))))
 
