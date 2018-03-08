@@ -9,6 +9,6 @@ import("data.table")
 importFrom("ggstance",
   "geom_linerangeh")
 importFrom("stats", "optimize", "setNames")
-importFrom("utils", "data", "setTxtProgressBar")
+importFrom("utils", "setTxtProgressBar")
 import("r4ss")
 exportPattern("^[^\\.]")
